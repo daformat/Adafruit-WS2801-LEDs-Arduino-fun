@@ -5,13 +5,6 @@
   https://github.com/TKJElectronics/LEDStringMatrix
  ****************************************************/
 
-// You can use any (4 or) 5 pins
-#define sclk 13
-#define mosi 11
-#define cs   10
-#define dc   8
-#define rst  0  // you can also connect this to the Arduino reset
-
 // WS2801
 uint8_t dataPin  = 2;    
 uint8_t clockPin = 3;
@@ -22,49 +15,26 @@ uint8_t dwnBtnPin = 5;
 uint8_t lftBtnPin = 6;
 uint8_t rgtBtnPin = 7;
 
-
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Adafruit_ST7735.h> // Hardware-specific library
-
 #include <SPI.h>
 #include <Adafruit_WS2801.h>
 
-// Option 1: use any pins but a little slower
-//Adafruit_ST7735 tft = Adafruit_ST7735(cs, dc, mosi, sclk, rst);
-
-// Option 2: must use the hardware SPI pins
-// (for UNO thats sclk = 13 and sid = 11) and pin 10 must be
-// an output. This is much faster - also required if you want
-// to use the microSD card (see the image drawing example)
-Adafruit_ST7735 tft = Adafruit_ST7735(cs, dc, rst);
-
 Adafruit_WS2801 strip = Adafruit_WS2801((uint16_t)7, (uint16_t)14, dataPin, clockPin);
 
-
-#define BUTTON_NONE 0
-#define BUTTON_DOWN 1
-#define BUTTON_RIGHT 2
-#define BUTTON_SELECT 3
-#define BUTTON_UP 4
-#define BUTTON_LEFT 5
-
-#define USE_ST7735 false
-
+#define BaneGridXmax 7 // Width of the LED matrix
+#define BaneGridYmax 14 // Height of the LED matrix
 
 byte oldSnakeItems = 0;
-byte oldSnakeItemPosX[98];
-byte oldSnakeItemPosY[98];
+byte oldSnakeItemPosX[BaneGridXmax*BaneGridYmax];
+byte oldSnakeItemPosY[BaneGridXmax*BaneGridYmax];
 byte SnakeItems = 0;
-byte SnakeItemPosX[98];
-byte SnakeItemPosY[98];
+byte SnakeItemPosX[BaneGridXmax*BaneGridYmax];
+byte SnakeItemPosY[BaneGridXmax*BaneGridYmax];
 byte ApplePosX;
 byte ApplePosY;
 byte AppleMoveCountDown;
-#define APPLE_COUNTDOWN_STEPS_MIN 8
-#define APPLE_COUNTDOWN_STEPS_MAX 15
+#define APPLE_COUNTDOWN_STEPS_MIN 8 // Minimum moves before an apple disappear
+#define APPLE_COUNTDOWN_STEPS_MAX 15 // Max moves before an apple disappear
 
-#define BaneGridXmax 7 // 
-#define BaneGridYmax 14 // 
 #define BLANK 0
 #define SNAKE 1
 #define APPLE 2
@@ -80,11 +50,11 @@ byte AppleCount = 0;
 #define SNAKE_RIGHT 1
 #define SNAKE_UP 2
 #define SNAKE_DOWN 3
-byte movingDirection = SNAKE_RIGHT; // Vores nuværende retning
-byte snakeDirection = SNAKE_RIGHT; // Piletasternes/vores næste retning
+byte movingDirection = SNAKE_RIGHT; // Actual moving direction
+byte snakeDirection = SNAKE_RIGHT; // Next moving direction (determined by the controller state)
 
-byte AddSnakeItem = 0; // Tilføj et snake item næste gang vi flytter os
-byte SnakeItemsToAddAtApple = 1; // Hvor mange Snake objekter der skal tilføjes når der spises et æble
+byte AddSnakeItem = 0; // Do we need to grow the snake on next move ?
+byte SnakeItemsToAddAtApple = 1; // How many blocks will be added when the snake eats an apple
 
 byte Score = 0;
 boolean GameRunning = false;
@@ -94,28 +64,12 @@ long timeBefore = millis();
 void setup(void) {
   Serial.begin(9600);
   Serial.print("Setup ");
-
-  if (USE_ST7735) {
-    Serial.println("using Adafruit ST7735 TFT screen");
-
-    setupST7735();
-  }
-  else {
-    Serial.println("using LEDs");
-
-     setupLED();
-  }
+  Serial.println("using LEDs");
+   setupLED();
 }
 
-void setupST7735(void){
-  
-  tft.initR(INITR_REDTAB);   // initialize a ST7735R chip, red tab
-  tft.fillScreen(ST7735_BLACK);
-
-}
 
 void setupLED(){
-
   strip.begin();
   // Update LED contents, to start they are all 'off'
   strip.show();  
@@ -123,20 +77,7 @@ void setupLED(){
 }
 
 void loop() {
-  if (USE_ST7735) {
-    loopST7735();
-  }
-  else {
     loopLED();
-  }
-}
-
-void loopST7735() {
-  
-  tft.invertDisplay(true);
-  delay(1000);
-  tft.invertDisplay(false);
-  delay(1000);
 }
 
 void loopLED() {
@@ -168,7 +109,7 @@ void loopLED() {
     
     if(!GameRunning)
       rainbowCycle(1);    
-    
+      
 }
 
 void rainbowCycle(uint8_t wait) {
@@ -193,6 +134,7 @@ void rainbowCycle(uint8_t wait) {
   }
 }
 
+// Convert a color from its 0-255 RGB code
 uint32_t Color(byte r, byte g, byte b)
 {
   uint32_t c;
@@ -217,22 +159,6 @@ uint32_t Wheel(byte WheelPos)
    WheelPos -= 170; 
    return Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
-}
-
-uint8_t readButtonST7735(void) {
-  float a = analogRead(3);
-  
-  a *= 5.0;
-  a /= 1024.0;
-  
-  Serial.print("Button read analog = ");
-  Serial.println(a);
-  if (a < 0.2) return BUTTON_DOWN;
-  if (a < 1.0) return BUTTON_RIGHT;
-  if (a < 1.5) return BUTTON_SELECT;
-  if (a < 2.0) return BUTTON_UP;
-  if (a < 3.2) return BUTTON_LEFT;
-  else return BUTTON_NONE;
 }
 
 void NewGame(void)
@@ -265,9 +191,9 @@ void NewGame(void)
 
 void moveSnake(void) {
   byte i;
-  movingDirection = snakeDirection; // Sæt movingDirection til den retning vi har valgt med piletasterne
+  movingDirection = snakeDirection; // set moving direction to the direction given by controller
 
-  if (AddSnakeItem == 0) { // Flyt det bagerste Snake Objekt til fronten, og sæt SnakeHeadID til dette objekts ID
+  if (AddSnakeItem == 0) { // Move the rear Snake Object to the front and set SnakeHeadID to this object's ID - Flyt det bagerste Snake Objekt til fronten, og sæt SnakeHeadID til dette objekts ID
     SnakeBackID = SnakeHeadID - 1;
     if (SnakeBackID == 0) SnakeBackID = SnakeItems;
     SnakeItemPosX[SnakeBackID] = SnakeItemPosX[SnakeHeadID];
@@ -287,7 +213,7 @@ void moveSnake(void) {
 	break;
     }			
     SnakeHeadID = SnakeBackID;
-  } else { // Skal vi tilføje et Snake objekt (AddSnakeItem > 0), da skal vi tilføje én foran, UDEN at fjerne den bagved
+  } else { // Should we add a Snake block (AddSnakeItem> 0), we must add it to the front, WITHOUT moving the rest
     for (i = SnakeItems; i >= SnakeHeadID; i--) {
       SnakeItemPosX[i+1] = SnakeItemPosX[i];
       SnakeItemPosY[i+1] = SnakeItemPosY[i];
@@ -313,22 +239,22 @@ void moveSnake(void) {
     AddSnakeItem--;
   }
 
-    // Befinder vi os inden for banen?						
+    // Are we in the game board						
     if (SnakeItemPosX[SnakeHeadID] > 0 && SnakeItemPosX[SnakeHeadID] <= BaneGridXmax && SnakeItemPosY[SnakeHeadID] > 0 && SnakeItemPosY[SnakeHeadID] <= BaneGridYmax) {
-      if (Playfield[SnakeItemPosX[SnakeHeadID]][SnakeItemPosY[SnakeHeadID]] != SNAKE) { // Er hovedets position på et blankt eller æble felt?
-	if (Playfield[SnakeItemPosX[SnakeHeadID]][SnakeItemPosY[SnakeHeadID]] == APPLE) { // Er hovedets position på et æble felt
+      if (Playfield[SnakeItemPosX[SnakeHeadID]][SnakeItemPosY[SnakeHeadID]] != SNAKE) { // Is the head position on a blank or apple block?
+	if (Playfield[SnakeItemPosX[SnakeHeadID]][SnakeItemPosY[SnakeHeadID]] == APPLE) { // Is the head position on an apple box
 	  Score++;
-	  AddSnakeItem += SnakeItemsToAddAtApple; // Tilføj x-antal snake items (bliver tilføjet til fronten af snake løbende)
-	  AppleCount--; // Fjern et æble fra RAM'en
+	  AddSnakeItem += SnakeItemsToAddAtApple; // Add x-number of snake items (being added to the front of the snake continuously)
+	  AppleCount--; //Remove an apple from the RAM
 	}			
-	if (AppleCount == 0) { // Hvis der ikke er flere æbler på banen
-	  placeRandomApple(); // placer da et æble et tilfældigt sted
+	if (AppleCount == 0) { // If there's no more apple
+	  placeRandomApple(); // place an apple a random place
 	}
-	render(); // Render Snake objekterne i de rigtige felter
-      } else { // Game over da vi ramte ind i os selv (snake felt)
+	render(); // Render Snake objects
+      } else { // Game over when we hit ourselves (snake field)
 	GameOver();				
       }
-    } else { // Game over da vi ramte ind i kanten
+    } else { // Game over when we hit an edge (Should be changed to wrap at the opposite edge)
       GameOver();
     }		
   }
@@ -363,15 +289,10 @@ void removeApple(void) {
 
 void setXYpixel(char x, char y, unsigned char R, unsigned char G, unsigned char B)
 { 
-  /*
-  if ((y % 2) > 0)
-    strip.setPixelColor(x, y, R, G, B);
-  else
-  */
-    strip.setPixelColor(x, y, R, G, B);
+  strip.setPixelColor(x, y, R, G, B);
 }
 
-void render(void) { // Render de forskellige snake Items
+void render(void) { // Render snake items
   byte i, x, y;
   
   for (i=1; i <= oldSnakeItems; i++) {
