@@ -18,10 +18,10 @@ uint8_t rgtBtnPin = 7;
 #include <SPI.h>
 #include <Adafruit_WS2801.h>
 
-Adafruit_WS2801 strip = Adafruit_WS2801((uint16_t)7, (uint16_t)14, dataPin, clockPin);
-
 #define BaneGridXmax 7 // Width of the LED matrix
 #define BaneGridYmax 14 // Height of the LED matrix
+
+Adafruit_WS2801 strip = Adafruit_WS2801((uint16_t)BaneGridXmax, (uint16_t)BaneGridYmax, dataPin, clockPin);
 
 byte oldSnakeItems = 0;
 byte oldSnakeItemPosX[BaneGridXmax*BaneGridYmax];
