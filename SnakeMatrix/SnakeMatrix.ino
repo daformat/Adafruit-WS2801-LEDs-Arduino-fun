@@ -58,6 +58,7 @@ byte SnakeItemsToAddAtApple = 1; // How many blocks will be added when the snake
 
 byte Score = 0;
 boolean GameRunning = false;
+boolean SnakeDiesOnEdges = false; // Sets the behavior when touching an edge 
 
 long timeBefore = millis();
 
@@ -239,7 +240,7 @@ void moveSnake(void) {
     AddSnakeItem--;
   }
 
-    // Are we in the game board						
+    // Are we within the game board						
     if (SnakeItemPosX[SnakeHeadID] > 0 && SnakeItemPosX[SnakeHeadID] <= BaneGridXmax && SnakeItemPosY[SnakeHeadID] > 0 && SnakeItemPosY[SnakeHeadID] <= BaneGridYmax) {
       if (Playfield[SnakeItemPosX[SnakeHeadID]][SnakeItemPosY[SnakeHeadID]] != SNAKE) { // Is the head position on a blank or apple block?
 	if (Playfield[SnakeItemPosX[SnakeHeadID]][SnakeItemPosY[SnakeHeadID]] == APPLE) { // Is the head position on an apple box
@@ -255,7 +256,17 @@ void moveSnake(void) {
 	GameOver();				
       }
     } else { // Game over when we hit an edge (Should be changed to wrap at the opposite edge)
-      GameOver();
+      if ( SnakeDiesOnEdges )
+        GameOver();
+      else if(SnakeItemPosX[SnakeHeadID] > BaneGridXmax)
+        SnakeItemPosX[SnakeHeadID] = 1;
+      else if (SnakeItemPosX[SnakeHeadID] <= 0 )
+        SnakeItemPosX[SnakeHeadID] = BaneGridXmax;
+      if(SnakeItemPosY[SnakeHeadID] > BaneGridYmax)
+        SnakeItemPosY[SnakeHeadID] = 1;
+      else if (SnakeItemPosY[SnakeHeadID] <= 0 )
+        SnakeItemPosY[SnakeHeadID] = BaneGridYmax;
+      render();
     }		
   }
   
