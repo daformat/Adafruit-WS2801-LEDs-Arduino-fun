@@ -56,6 +56,8 @@ byte snakeDirection = SNAKE_RIGHT; // Next moving direction (determined by the c
 byte AddSnakeItem = 0; // Do we need to grow the snake on next move ?
 byte SnakeItemsToAddAtApple = 1; // How many blocks will be added when the snake eats an apple
 
+int delayBetweenMoves = 100; // How much time between each move (milliseconds, less == speedier game)
+
 byte Score = 0;
 boolean GameRunning = false;
 boolean SnakeDiesOnEdges = false; // Sets the behavior when touching an edge 
@@ -82,7 +84,7 @@ void loop() {
 }
 
 void loopLED() {
-    if ((millis() >= (timeBefore+300)) && (GameRunning == true)) {
+    if ((millis() >= (timeBefore + delayBetweenMoves)) && (GameRunning == true)) {
       moveSnake();
       timeBefore = millis();
     }
