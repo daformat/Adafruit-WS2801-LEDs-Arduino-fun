@@ -56,7 +56,7 @@ byte snakeDirection = SNAKE_RIGHT; // Next moving direction (determined by the c
 byte AddSnakeItem = 0; // Do we need to grow the snake on next move ?
 byte SnakeItemsToAddAtApple = 1; // How many blocks will be added when the snake eats an apple
 
-int delayBetweenMoves = 100; // How much time between each move (milliseconds, less == speedier game)
+int delayBetweenMoves = 300; // How much time between each move (milliseconds, less == speedier game)
 
 byte Score = 0;
 boolean GameRunning = false;
